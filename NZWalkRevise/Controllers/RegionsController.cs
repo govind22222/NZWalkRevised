@@ -1,6 +1,8 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using NZWalkRevise.Database;
+using NZWalkRevise.Models.DomainModels;
+using NZWalkRevise.Models.DTOs;
 
 namespace NZWalkRevise.Controllers
 {
@@ -18,9 +20,24 @@ namespace NZWalkRevise.Controllers
         public async Task<IActionResult> GetAllRegion()
         {
             var regionList = await _db.Regions.ToListAsync();
-            if (regionList is not null)
+
+            var regionDto = new List<RegionDTO>();
+
+            foreach (var item in regionList)
             {
-                return Ok(regionList);
+                regionDto.Add(new RegionDTO()
+                {
+                    Id = item.Id,
+                    Name = item.Name,
+                    Code = item.Code,
+                    Description = item.Description,
+                    RegionImageUrl = item.RegionImageUrl
+                });
+
+            }
+            if (regionDto is not null)
+            {
+                return Ok(regionDto);
             }
             else
             {
@@ -53,13 +70,56 @@ namespace NZWalkRevise.Controllers
         public async Task<IActionResult> GeRegionById([FromRoute] Guid id)
         {
             var region = await _db.Regions.FirstOrDefaultAsync(r => r.Id == id);
+            var regionDto = new RegionDTO()
+            {
+                Id = region.Id,
+                Name = region.Name,
+                Code = region.Code,
+                Description = region.Description,
+                RegionImageUrl = region.RegionImageUrl
+
+            };
             if (region is not null)
             {
-                return Ok(region);
+                return Ok(regionDto);
             }
             else
             {
                 return NotFound();
+            }
+        }
+
+
+        [HttpPost]
+        [Route("CreateNewRegion")]
+        public async Task<IActionResult> CreateRegion([FromBody] AddRegionDto region)
+        {
+            var addRegion = new Region()
+            {
+                Name = region.Name,
+                Code = region.Code,
+                Description = region.Description,
+                RegionImageUrl = region.RegionImageUrl
+            };
+            using var transaction = await _db.Database.BeginTransactionAsync();
+            var addResponse = await _db.Regions.AddAsync(addRegion);
+            if (Convert.ToBoolean(await _db.SaveChangesAsync()))
+            {
+                await transaction.CommitAsync();
+                var regionDto = new RegionDTO()
+                {
+                    Id = addRegion.Id,
+                    Name = addRegion.Name,
+                    Code = addRegion.Code,
+                    Description = addRegion.Description,
+                    RegionImageUrl = addRegion.RegionImageUrl
+                };
+                return CreatedAtAction(nameof(GeRegionById), new { id = addRegion.Id }, regionDto);
+            }
+            else
+            {
+                await transaction.RollbackAsync();
+                return BadRequest();
             }
         }
 
