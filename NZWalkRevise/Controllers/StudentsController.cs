@@ -9,7 +9,7 @@ namespace NZWalkRevise.Controllers
     {
         public StudentsController()
         {
-                
+
         }
 
         [HttpGet]

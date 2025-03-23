@@ -3,7 +3,7 @@ using NZWalkRevise.Models.DomainModels;
 
 namespace NZWalkRevise.Database
 {
-    public class NZWalkDbContext: DbContext
+    public class NZWalkDbContext : DbContext
     {
         public NZWalkDbContext(DbContextOptions<NZWalkDbContext> options) : base(options)
         {
