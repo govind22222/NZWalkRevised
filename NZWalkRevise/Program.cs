@@ -1,3 +1,6 @@
+using Microsoft.EntityFrameworkCore;
+using NZWalkRevise.Database;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -7,6 +10,9 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+//Database service added by Raghvendra
+builder.Services.AddDbContext<NZWalkDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.
