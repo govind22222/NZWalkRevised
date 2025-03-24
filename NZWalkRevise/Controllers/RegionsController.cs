@@ -66,8 +66,8 @@ namespace NZWalkRevise.Controllers
         }
 
         [HttpGet]
-        [Route("GeRegionById/{id:guid}")]
-        public async Task<IActionResult> GeRegionById([FromRoute] Guid id)
+        [Route("GetRegionById/{id:guid}")]
+        public async Task<IActionResult> GetRegionById([FromRoute] Guid id)
         {
             var region = await _db.Regions.FirstOrDefaultAsync(r => r.Id == id);
             var regionDto = new RegionDTO()
@@ -114,7 +114,7 @@ namespace NZWalkRevise.Controllers
                     Description = addRegion.Description,
                     RegionImageUrl = addRegion.RegionImageUrl
                 };
-                return CreatedAtAction(nameof(GeRegionById), new { id = addRegion.Id }, regionDto);
+                return CreatedAtAction(nameof(GetRegionById), new { id = addRegion.Id }, regionDto);
             }
             else
             {
@@ -162,6 +162,33 @@ namespace NZWalkRevise.Controllers
             {
                 return NotFound("Region not found.");
             }
+        }
+
+        [HttpDelete]
+        [Route("DeleteRegion/{deleteId:guid}")]
+        public async Task<IActionResult> DeleteRegionById([FromRoute] Guid deleteId)
+        {
+            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == deleteId);
+            if (regionData is not null)
+            {
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                _db.Regions.Remove(regionData);
+                if (Convert.ToBoolean(await _db.SaveChangesAsync()))
+                {
+                    await transaction.CommitAsync();
+                    return Ok($"Region '{regionData.Name}' Deleted Successfully.");
+                }
+                else
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest("Region not Deleted.");
+                }
+            }
+            else
+            {
+                return NotFound($"Region with Id:'{deleteId}' is not found.");
+            }
+
         }
 
     }
