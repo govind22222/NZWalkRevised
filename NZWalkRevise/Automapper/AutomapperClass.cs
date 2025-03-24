@@ -11,6 +11,8 @@ namespace NZWalkRevise.Automapper
             CreateMap<Region, RegionDTO>().ReverseMap();
             CreateMap<AddRegionDto, Region>().ReverseMap();
             CreateMap<UpdateRegionDto, Region>().ReverseMap();
+            CreateMap<WalkDto, Walk>().ReverseMap();
+            CreateMap<AddUpdateWalkDto, Walk>().ReverseMap();
         }
     }
 }

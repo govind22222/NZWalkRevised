@@ -18,6 +18,7 @@ builder.Services.AddDbContext<NZWalkDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
 
 builder.Services.AddScoped<IRegion, RegionService>();
+builder.Services.AddScoped<IWalk, WalkService>();
 //-----Added By Raghvendra to use Automapper
 builder.Services.AddAutoMapper(typeof(AutomapperClass));
 var app = builder.Build();

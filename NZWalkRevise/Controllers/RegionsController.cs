@@ -86,13 +86,9 @@ namespace NZWalkRevise.Controllers
             }
             if (regionResponse?.Data is null || regionResponse?.Data?.Count() == 0)
             {
-                return BadRequest("Data added but not Returned to Swagger !!");
+                return BadRequest("Region added but data not Returned to Swagger !!");
             }
             var region = JsonConvert.DeserializeObject<Region>(regionResponse.Data);
-            if (region is null)
-            {
-                return NotFound("Region data is missing.");
-            }
             var regionDto = _autoMapper.Map<RegionDTO>(region);
             return CreatedAtAction(nameof(GetRegionById), new { id = regionDto.Id }, regionDto);
         }

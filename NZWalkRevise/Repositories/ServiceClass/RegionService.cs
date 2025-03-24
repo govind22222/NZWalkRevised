@@ -27,7 +27,7 @@ namespace NZWalkRevise.Repositories.ServiceClass
         {
             var regionList = await _db.Regions.AsNoTracking().ToListAsync();
 
-            if (regionList is not null)
+            if (regionList is not null && regionList.Count() != 0)
             {
                 responseModel.Data = JsonConvert.SerializeObject(regionList);
                 responseModel.IsSuccess = true;
@@ -80,17 +80,18 @@ namespace NZWalkRevise.Repositories.ServiceClass
 
         public async Task<string> UpdateRegion(UpdateRegionDto updateRegionDto, Guid id)
         {
-            var regionData = await _db.Regions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
+            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == id);
             if (regionData is not null)
             {
-                regionData = _autoMappper.Map<Region>(updateRegionDto);
-                regionData.Id = id;
+                regionData.Name = updateRegionDto.Name;
+                regionData.Code = updateRegionDto.Code;
+                regionData.Description = updateRegionDto.Description;
+                regionData.RegionImageUrl = updateRegionDto.RegionImageUrl;
                 using var transaction = await _db.Database.BeginTransactionAsync();
                 _db.Regions.Update(regionData);
                 if (Convert.ToBoolean(await _db.SaveChangesAsync()))
                 {
                     await transaction.CommitAsync();
-
                     responseModel.IsSuccess = true;
                     responseModel.SuccessMessage = "Region Updated Successfully !!";
                     responseModel.Data = JsonConvert.SerializeObject(regionData);
