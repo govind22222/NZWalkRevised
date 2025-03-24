@@ -123,5 +123,46 @@ namespace NZWalkRevise.Controllers
             }
         }
 
+
+        [HttpPut]
+        [Route("UpdateRegion/{id:guid}")]
+        public async Task<IActionResult> UpdateRegionById([FromBody] UpdateRegionDto updateRegion, [FromRoute] Guid id)
+        {
+            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            if (regionData is not null)
+            {
+                regionData.Code = updateRegion.Code;
+                regionData.Name = updateRegion.Name;
+                regionData.Description = updateRegion.Description;
+                regionData.RegionImageUrl = updateRegion.RegionImageUrl;
+
+                using var transaction = await _db.Database.BeginTransactionAsync();
+                _db.Regions.Update(regionData);
+                if (Convert.ToBoolean(await _db.SaveChangesAsync()))
+                {
+                    await transaction.CommitAsync();
+                    RegionDTO regionDTO = new RegionDTO()
+                    {
+                        Id = regionData.Id,
+                        Name = regionData.Name,
+                        Code = regionData.Code,
+                        Description = regionData.Description,
+                        RegionImageUrl = regionData.RegionImageUrl
+
+                    };
+                    return Ok(regionDTO);
+                }
+                else
+                {
+                    await transaction.RollbackAsync();
+                    return BadRequest("REgion not Updated.");
+                }
+            }
+            else
+            {
+                return NotFound("Region not found.");
+            }
+        }
+
     }
 }
