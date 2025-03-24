@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using NZWalkRevise.Automapper;
 using NZWalkRevise.Database;
 using NZWalkRevise.Repositories.Interface;
 using NZWalkRevise.Repositories.ServiceClass;
@@ -17,6 +18,8 @@ builder.Services.AddDbContext<NZWalkDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
 
 builder.Services.AddScoped<IRegion, RegionService>();
+//-----Added By Raghvendra to use Automapper
+builder.Services.AddAutoMapper(typeof(AutomapperClass));
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

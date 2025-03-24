@@ -1,7 +1,9 @@
 ﻿using System.Text.Json.Serialization;
+using AutoMapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
+using NZWalkRevise.Automapper;
 using NZWalkRevise.Database;
 using NZWalkRevise.Models.DomainModels;
 using NZWalkRevise.Models.DTOs;
@@ -13,15 +15,17 @@ namespace NZWalkRevise.Repositories.ServiceClass
     public class RegionService : IRegion
     {
         private readonly NZWalkDbContext _db;
+        private readonly IMapper _autoMappper;
         private readonly ResponseModelDto responseModel = new();
-        public RegionService(NZWalkDbContext db)
+        public RegionService(NZWalkDbContext db, IMapper autoMappper)
         {
             _db = db;
+            _autoMappper = autoMappper;
         }
 
         public async Task<string> GetAllRegions()
         {
-            var regionList = await _db.Regions.ToListAsync();
+            var regionList = await _db.Regions.AsNoTracking().ToListAsync();
 
             if (regionList is not null)
             {
@@ -39,7 +43,7 @@ namespace NZWalkRevise.Repositories.ServiceClass
 
         public async Task<string> GetRegionById(Guid regionId)
         {
-            var region = await _db.Regions.FirstOrDefaultAsync(x => x.Id == regionId);
+            var region = await _db.Regions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == regionId);
             if (region is not null)
             {
                 responseModel.IsSuccess = true;
@@ -56,13 +60,7 @@ namespace NZWalkRevise.Repositories.ServiceClass
 
         public async Task<string> AddRegion(AddRegionDto addRegionDto)
         {
-            var regionModel = new Region()
-            {
-                Name = addRegionDto.Name,
-                Code = addRegionDto.Code,
-                Description = addRegionDto.Description,
-                RegionImageUrl = addRegionDto.RegionImageUrl
-            };
+            var regionModel = _autoMappper.Map<Region>(addRegionDto);
             using var transaction = await _db.Database.BeginTransactionAsync();
             await _db.Regions.AddAsync(regionModel);
             if (Convert.ToBoolean(await _db.SaveChangesAsync()))
@@ -82,14 +80,11 @@ namespace NZWalkRevise.Repositories.ServiceClass
 
         public async Task<string> UpdateRegion(UpdateRegionDto updateRegionDto, Guid id)
         {
-            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == id);
+            var regionData = await _db.Regions.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id);
             if (regionData is not null)
             {
-                regionData.Code = updateRegionDto.Code;
-                regionData.Name = updateRegionDto.Name;
-                regionData.Description = updateRegionDto.Description;
-                regionData.RegionImageUrl = updateRegionDto.RegionImageUrl;
-
+                regionData = _autoMappper.Map<Region>(updateRegionDto);
+                regionData.Id = id;
                 using var transaction = await _db.Database.BeginTransactionAsync();
                 _db.Regions.Update(regionData);
                 if (Convert.ToBoolean(await _db.SaveChangesAsync()))

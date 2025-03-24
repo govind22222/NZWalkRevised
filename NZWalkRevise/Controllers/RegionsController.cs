@@ -1,6 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
+﻿using AutoMapper;
+using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NZWalkRevise.Database;
 using NZWalkRevise.Models.DomainModels;
@@ -15,12 +14,14 @@ namespace NZWalkRevise.Controllers
     {
         private readonly NZWalkDbContext _db;
         private readonly IRegion _region;
+        private readonly IMapper _autoMapper;
         private readonly ResponseModelDto responseModel = new();
 
-        public RegionsController(NZWalkDbContext db, IRegion region)
+        public RegionsController(NZWalkDbContext db, IRegion region, IMapper autoMapper)
         {
             _db = db;
             _region = region;
+            _autoMapper = autoMapper;
         }
 
         [HttpGet]
@@ -40,18 +41,8 @@ namespace NZWalkRevise.Controllers
                 return NotFound("Region not Found !!");
             }
             var regionList = JsonConvert.DeserializeObject<List<Region>>(regionResponse.Data);
-            var regionDtoList = new List<RegionDTO>();
-            foreach (var item in regionList)
-            {
-                regionDtoList.Add(new RegionDTO()
-                {
-                    Id = item.Id,
-                    Name = item.Name,
-                    Code = item.Code,
-                    Description = item.Description,
-                    RegionImageUrl = item.RegionImageUrl
-                });
-            }
+            //Mapping Region domain model list to RegionDto list
+            var regionDtoList = _autoMapper.Map<List<RegionDTO>>(regionList);
             return Ok(regionDtoList);
         }
 
@@ -72,18 +63,8 @@ namespace NZWalkRevise.Controllers
             {
                 return BadRequest($"Region data with Id:'{id}' retrived but having some error to display. !!");
             }
-
             var region = JsonConvert.DeserializeObject<Region>(regionResponse.Data);
-            var regionDto = new RegionDTO()
-            {
-                Id = region.Id,
-                Name = region.Name,
-                Code = region.Code,
-                Description = region.Description,
-                RegionImageUrl = region.RegionImageUrl
-
-            };
-            return Ok(regionDto);
+            return Ok(_autoMapper.Map<RegionDTO>(region));
         }
 
         [HttpPost]
@@ -112,14 +93,7 @@ namespace NZWalkRevise.Controllers
             {
                 return NotFound("Region data is missing.");
             }
-            var regionDto = new RegionDTO()
-            {
-                Id = region.Id,
-                Name = region.Name,
-                Code = region.Code,
-                Description = region.Description,
-                RegionImageUrl = region.RegionImageUrl
-            };
+            var regionDto = _autoMapper.Map<RegionDTO>(region);
             return CreatedAtAction(nameof(GetRegionById), new { id = regionDto.Id }, regionDto);
         }
 
@@ -145,15 +119,7 @@ namespace NZWalkRevise.Controllers
                 return NotFound("Region updated but data is missing to return.");
             }
             var updatedRegion = JsonConvert.DeserializeObject<Region>(updateResponse.Data);
-            var regionDto = new RegionDTO()
-            {
-                Id = updatedRegion.Id,
-                Name = updatedRegion.Name,
-                Code = updatedRegion.Code,
-                Description = updatedRegion.Description,
-                RegionImageUrl = updatedRegion.RegionImageUrl
-            };
-            return Ok(regionDto);
+            return Ok(_autoMapper.Map<RegionDTO>(updatedRegion));
         }
 
         [HttpDelete]
@@ -174,14 +140,7 @@ namespace NZWalkRevise.Controllers
                 return NotFound($"Region Deleted but data is missing to return.");
             }
             var deletedRegion = JsonConvert.DeserializeObject<Region>(deleteResponse.Data);
-            var regionData = new RegionDTO()
-            {
-                Id = deletedRegion.Id,
-                Name = deletedRegion.Name,
-                Code = deletedRegion.Code,
-                Description = deletedRegion.Description,
-                RegionImageUrl = deletedRegion.RegionImageUrl
-            };
+            var regionData = _autoMapper.Map<RegionDTO>(deletedRegion);
             return Ok($"Region '{regionData.Name}' Deleted Successfully.");
         }
 
