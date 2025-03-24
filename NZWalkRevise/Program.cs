@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using NZWalkRevise.Database;
+using NZWalkRevise.Repositories.Interface;
+using NZWalkRevise.Repositories.ServiceClass;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -13,6 +15,8 @@ builder.Services.AddSwaggerGen();
 //Database service added by Raghvendra
 builder.Services.AddDbContext<NZWalkDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
+
+builder.Services.AddScoped<IRegion, RegionService>();
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

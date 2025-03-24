@@ -1,8 +1,11 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using NZWalkRevise.Database;
 using NZWalkRevise.Models.DomainModels;
 using NZWalkRevise.Models.DTOs;
+using NZWalkRevise.Repositories.Interface;
 
 namespace NZWalkRevise.Controllers
 {
@@ -11,21 +14,36 @@ namespace NZWalkRevise.Controllers
     public class RegionsController : ControllerBase
     {
         private readonly NZWalkDbContext _db;
-        public RegionsController(NZWalkDbContext db)
+        private readonly IRegion _region;
+        private readonly ResponseModelDto responseModel = new();
+
+        public RegionsController(NZWalkDbContext db, IRegion region)
         {
             _db = db;
+            _region = region;
         }
 
         [HttpGet]
         public async Task<IActionResult> GetAllRegion()
         {
-            var regionList = await _db.Regions.ToListAsync();
-
-            var regionDto = new List<RegionDTO>();
-
+            var regionResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.GetAllRegions());
+            if (regionResponse is null)
+            {
+                return BadRequest("Some Error Occured Region List not retrived !!");
+            }
+            if (regionResponse.IsSuccess is false)
+            {
+                return BadRequest(regionResponse.ErrorMessage);
+            }
+            if (string.IsNullOrEmpty(regionResponse?.Data) || regionResponse?.Data.Count() == 0)
+            {
+                return NotFound("Region not Found !!");
+            }
+            var regionList = JsonConvert.DeserializeObject<List<Region>>(regionResponse.Data);
+            var regionDtoList = new List<RegionDTO>();
             foreach (var item in regionList)
             {
-                regionDto.Add(new RegionDTO()
+                regionDtoList.Add(new RegionDTO()
                 {
                     Id = item.Id,
                     Name = item.Name,
@@ -33,43 +51,29 @@ namespace NZWalkRevise.Controllers
                     Description = item.Description,
                     RegionImageUrl = item.RegionImageUrl
                 });
-
             }
-            if (regionDto is not null)
-            {
-                return Ok(regionDto);
-            }
-            else
-            {
-                return NotFound();
-            }
-            #region "Commented Code"
-            //var regionsList = new List<Region>() { 
-            //new Region()
-            //{
-            //    Id= Guid.NewGuid(),
-            //    Name="Aukland Region",
-            //    Code="AUK",
-            //    Description="This is Aukland Region.",
-            //    RegionImageUrl="https://unsplash.com/photos/a-bunch-of-balloons-that-are-shaped-like-email-7NT4EDSI5Ok"
-            //},
-            //new Region()
-            //{
-            //    Id= Guid.NewGuid(),
-            //    Name="Willington Region",
-            //    Code="WTN",
-            //    Description="This is Willington Region.",
-            //    RegionImageUrl="https://unsplash.com/photos/two-people-sitting-on-a-couch-playing-video-games-xoT1rt09NEI"
-            //}
-            //};
-            #endregion 
+            return Ok(regionDtoList);
         }
 
         [HttpGet]
         [Route("GetRegionById/{id:guid}")]
         public async Task<IActionResult> GetRegionById([FromRoute] Guid id)
         {
-            var region = await _db.Regions.FirstOrDefaultAsync(r => r.Id == id);
+            var regionResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.GetRegionById(id));
+            if (regionResponse is null)
+            {
+                return StatusCode(500, $" Some Error Occured Region with Id:'{id}' not found.");
+            }
+            if (regionResponse?.IsSuccess is not true)
+            {
+                return NotFound(regionResponse?.ErrorMessage);
+            }
+            if (string.IsNullOrEmpty(regionResponse?.Data) || regionResponse?.Data?.Count() == 0)
+            {
+                return BadRequest($"Region data with Id:'{id}' retrived but having some error to display. !!");
+            }
+
+            var region = JsonConvert.DeserializeObject<Region>(regionResponse.Data);
             var regionDto = new RegionDTO()
             {
                 Id = region.Id,
@@ -79,116 +83,106 @@ namespace NZWalkRevise.Controllers
                 RegionImageUrl = region.RegionImageUrl
 
             };
-            if (region is not null)
-            {
-                return Ok(regionDto);
-            }
-            else
-            {
-                return NotFound();
-            }
+            return Ok(regionDto);
         }
-
 
         [HttpPost]
         [Route("CreateNewRegion")]
-        public async Task<IActionResult> CreateRegion([FromBody] AddRegionDto region)
+        public async Task<IActionResult> CreateRegion([FromBody] AddRegionDto addRegion)
         {
-            var addRegion = new Region()
+            if (addRegion is null)
             {
+                return BadRequest("Region Data should not Empty.");
+            }
+            var regionResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.AddRegion(addRegion));
+            if (regionResponse is null)
+            {
+                return StatusCode(500, $"Some Error Occured Region:'{addRegion.Name}' not Added !!");
+            }
+            if (regionResponse?.IsSuccess is not true)
+            {
+                return BadRequest(regionResponse?.ErrorMessage);
+            }
+            if (regionResponse?.Data is null || regionResponse?.Data?.Count() == 0)
+            {
+                return BadRequest("Data added but not Returned to Swagger !!");
+            }
+            var region = JsonConvert.DeserializeObject<Region>(regionResponse.Data);
+            if (region is null)
+            {
+                return NotFound("Region data is missing.");
+            }
+            var regionDto = new RegionDTO()
+            {
+                Id = region.Id,
                 Name = region.Name,
                 Code = region.Code,
                 Description = region.Description,
                 RegionImageUrl = region.RegionImageUrl
             };
-            using var transaction = await _db.Database.BeginTransactionAsync();
-            var addResponse = await _db.Regions.AddAsync(addRegion);
-            if (Convert.ToBoolean(await _db.SaveChangesAsync()))
-            {
-                await transaction.CommitAsync();
-                var regionDto = new RegionDTO()
-                {
-                    Id = addRegion.Id,
-                    Name = addRegion.Name,
-                    Code = addRegion.Code,
-                    Description = addRegion.Description,
-                    RegionImageUrl = addRegion.RegionImageUrl
-                };
-                return CreatedAtAction(nameof(GetRegionById), new { id = addRegion.Id }, regionDto);
-            }
-            else
-            {
-                await transaction.RollbackAsync();
-                return BadRequest();
-            }
+            return CreatedAtAction(nameof(GetRegionById), new { id = regionDto.Id }, regionDto);
         }
-
 
         [HttpPut]
         [Route("UpdateRegion/{id:guid}")]
         public async Task<IActionResult> UpdateRegionById([FromBody] UpdateRegionDto updateRegion, [FromRoute] Guid id)
         {
-            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == id);
-            if (regionData is not null)
+            if (updateRegion is null)
             {
-                regionData.Code = updateRegion.Code;
-                regionData.Name = updateRegion.Name;
-                regionData.Description = updateRegion.Description;
-                regionData.RegionImageUrl = updateRegion.RegionImageUrl;
-
-                using var transaction = await _db.Database.BeginTransactionAsync();
-                _db.Regions.Update(regionData);
-                if (Convert.ToBoolean(await _db.SaveChangesAsync()))
-                {
-                    await transaction.CommitAsync();
-                    RegionDTO regionDTO = new RegionDTO()
-                    {
-                        Id = regionData.Id,
-                        Name = regionData.Name,
-                        Code = regionData.Code,
-                        Description = regionData.Description,
-                        RegionImageUrl = regionData.RegionImageUrl
-
-                    };
-                    return Ok(regionDTO);
-                }
-                else
-                {
-                    await transaction.RollbackAsync();
-                    return BadRequest("REgion not Updated.");
-                }
+                return BadRequest("Region Data should not Empty.");
             }
-            else
+            var updateResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.UpdateRegion(updateRegion, id));
+            if (updateResponse is null)
             {
-                return NotFound("Region not found.");
+                return StatusCode(500, $"Error Occured Region with id:'{id}' not updated.");
             }
+            if (updateResponse?.IsSuccess is not true)
+            {
+                return BadRequest(updateResponse?.ErrorMessage);
+            }
+            if (string.IsNullOrEmpty(updateResponse?.Data))
+            {
+                return NotFound("Region updated but data is missing to return.");
+            }
+            var updatedRegion = JsonConvert.DeserializeObject<Region>(updateResponse.Data);
+            var regionDto = new RegionDTO()
+            {
+                Id = updatedRegion.Id,
+                Name = updatedRegion.Name,
+                Code = updatedRegion.Code,
+                Description = updatedRegion.Description,
+                RegionImageUrl = updatedRegion.RegionImageUrl
+            };
+            return Ok(regionDto);
         }
 
         [HttpDelete]
         [Route("DeleteRegion/{deleteId:guid}")]
         public async Task<IActionResult> DeleteRegionById([FromRoute] Guid deleteId)
         {
-            var regionData = await _db.Regions.FirstOrDefaultAsync(x => x.Id == deleteId);
-            if (regionData is not null)
+            var deleteResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.DeleteRegion(deleteId));
+            if (deleteResponse is null)
             {
-                using var transaction = await _db.Database.BeginTransactionAsync();
-                _db.Regions.Remove(regionData);
-                if (Convert.ToBoolean(await _db.SaveChangesAsync()))
-                {
-                    await transaction.CommitAsync();
-                    return Ok($"Region '{regionData.Name}' Deleted Successfully.");
-                }
-                else
-                {
-                    await transaction.RollbackAsync();
-                    return BadRequest("Region not Deleted.");
-                }
+                return BadRequest(deleteResponse?.ErrorMessage ?? $"Some error occured Region with id:'{deleteId}' not deleted.");
             }
-            else
+            if (deleteResponse.IsSuccess is not true)
             {
-                return NotFound($"Region with Id:'{deleteId}' is not found.");
+                return BadRequest(deleteResponse?.ErrorMessage);
             }
-
+            if (string.IsNullOrEmpty(deleteResponse?.Data))
+            {
+                return NotFound($"Region Deleted but data is missing to return.");
+            }
+            var deletedRegion = JsonConvert.DeserializeObject<Region>(deleteResponse.Data);
+            var regionData = new RegionDTO()
+            {
+                Id = deletedRegion.Id,
+                Name = deletedRegion.Name,
+                Code = deletedRegion.Code,
+                Description = deletedRegion.Description,
+                RegionImageUrl = deletedRegion.RegionImageUrl
+            };
+            return Ok($"Region '{regionData.Name}' Deleted Successfully.");
         }
 
     }
