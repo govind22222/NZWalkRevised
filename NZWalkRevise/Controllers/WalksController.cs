@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
 using NZWalkRevise.Database;
+using NZWalkRevise.ModelFilters;
 using NZWalkRevise.Models.DomainModels;
 using NZWalkRevise.Models.DTOs;
 using NZWalkRevise.Repositories.Interface;
@@ -68,6 +69,7 @@ namespace NZWalkRevise.Controllers
 
         [HttpPost]
         [Route("AddWalk")]
+        [FilterValidateModelAttributes]
         public async Task<IActionResult> CreateWalk([FromBody] AddUpdateWalkDto addWalkDto)
         {
             if (addWalkDto is null)
@@ -94,6 +96,7 @@ namespace NZWalkRevise.Controllers
 
         [HttpPut]
         [Route("UpdateWalk/{walkId:guid}")]
+        [FilterValidateModelAttributes]
         public async Task<IActionResult> UpdateWalkData([FromBody] AddUpdateWalkDto updateWalkDto, Guid walkId)
         {
             if (updateWalkDto is null)
