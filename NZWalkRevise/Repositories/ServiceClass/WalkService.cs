@@ -22,7 +22,7 @@ namespace NZWalkRevise.Repositories.ServiceClass
             _autoMapper = autoMapper;
         }
 
-        public async Task<string> GetAllWalk(string? filteBy, string? filterQuery, string? orderBy, bool isAsc = true)
+        public async Task<string> GetAllWalk(string? filteBy, string? filterQuery, string? orderBy, bool isAsc = true, int pageNumber = 1, int pageSize = 100)
         {
             //var walkData = await _db.Walks.AsNoTracking().Include(w => w.Difficulty).Include(w => w.Region).ToListAsync();
             var walkData = _db.Walks.Include(w => w.Difficulty).Include(w => w.Region).AsQueryable();
@@ -49,14 +49,14 @@ namespace NZWalkRevise.Repositories.ServiceClass
                         break;
                 }
             }
-            //var walkList1= await walkData.CountAsync();
-            var walkList = await walkData.ToListAsync();
 
+            var skipResults = (pageNumber - 1) * pageSize;
+            var walkList = await walkData.Skip(skipResults).Take(pageSize).ToListAsync();
             if (walkList is not null && walkList.Count() != 0)
             {
                 responseModel.IsSuccess = true;
-                responseModel.SuccessMessage = "Walk list retrived Successfully !!";
-                responseModel.Data = JsonConvert.SerializeObject(walkData);
+                responseModel.SuccessMessage = "Walk list retrieved Successfully !!";
+                responseModel.Data = JsonConvert.SerializeObject(walkList);
             }
             else
             {
