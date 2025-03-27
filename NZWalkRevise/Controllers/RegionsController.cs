@@ -26,9 +26,10 @@ namespace NZWalkRevise.Controllers
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetAllRegion()
+        [Route("GetAllRegions")]
+        public async Task<IActionResult> GetAllRegion([FromQuery] string? filterBy, [FromQuery] string? filterValue, [FromQuery] string? orderBy, bool isAsc = true, int pageNumber = 1, int pageSize = 100)
         {
-            var regionResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.GetAllRegions());
+            var regionResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _region.GetAllRegions(filterBy, filterValue, orderBy, isAsc, pageNumber, pageSize));
             if (regionResponse is null)
             {
                 return BadRequest("Some Error Occured Region List not retrived !!");

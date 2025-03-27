@@ -25,7 +25,7 @@ namespace NZWalkRevise.Repositories.ServiceClass
         public async Task<string> GetAllWalk(string? filteBy, string? filterQuery, string? orderBy, bool isAsc = true, int pageNumber = 1, int pageSize = 100)
         {
             //var walkData = await _db.Walks.AsNoTracking().Include(w => w.Difficulty).Include(w => w.Region).ToListAsync();
-            var walkData = _db.Walks.Include(w => w.Difficulty).Include(w => w.Region).AsQueryable();
+            var walkData = _db.Walks.AsNoTracking().Include(w => w.Difficulty).Include(w => w.Region).AsQueryable();
 
             if (!string.IsNullOrEmpty(filteBy) && !string.IsNullOrEmpty(filterQuery))
             {

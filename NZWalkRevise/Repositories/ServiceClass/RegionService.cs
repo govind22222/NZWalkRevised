@@ -23,10 +23,33 @@ namespace NZWalkRevise.Repositories.ServiceClass
             _autoMappper = autoMappper;
         }
 
-        public async Task<string> GetAllRegions()
+        public async Task<string> GetAllRegions(string? filterBy, string? filterValue, string? orderby, bool isAsc = true, int pageNumber = 1, int pageSize = 100)
         {
-            var regionList = await _db.Regions.AsNoTracking().ToListAsync();
+            //var regionList = await _db.Regions.AsNoTracking().ToListAsync();
+            var regionData = _db.Regions.AsNoTracking().AsQueryable();
+            if (!string.IsNullOrEmpty(filterBy) && !string.IsNullOrEmpty(filterValue))
+            {
+                switch (filterValue.ToLower())
+                {
+                    case "name":
+                        regionData = regionData.Where(r => EF.Functions.Like(r.Name, $"%{filterValue}%"));
+                        regionData = isAsc ? regionData.OrderBy(r => r.Name) : regionData.OrderByDescending(r => r.Name);
+                        break;
 
+                    case "code":
+                        regionData = regionData.Where(r => EF.Functions.Like(r.Code, $"%{filterValue}%"));
+                        break;
+
+                    case "deccription":
+                        regionData = regionData.Where(r => EF.Functions.Like(r.Description, $"%{filterValue}%"));
+                        break;
+                    default:
+                        regionData = regionData.Where(r => EF.Functions.Like(r.Name, $"%{filterValue}%"));
+                        break;
+                }
+            }
+            var skipCount = (pageNumber - 1) * pageSize;
+            var regionList = await regionData.Skip(skipCount).Take(pageSize).ToListAsync();
             if (regionList is not null && regionList.Count() != 0)
             {
                 responseModel.Data = JsonConvert.SerializeObject(regionList);
