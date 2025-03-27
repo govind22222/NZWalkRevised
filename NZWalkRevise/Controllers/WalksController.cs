@@ -27,9 +27,9 @@ namespace NZWalkRevise.Controllers
 
         [HttpGet]
         [Route("GetAllWalks")]
-        public async Task<IActionResult> GetAllWalks()
+        public async Task<IActionResult> GetAllWalks([FromQuery] string? filterBy, [FromQuery] string? filterQuery, [FromQuery] string? orderBy, [FromQuery] bool isAsc = true)
         {
-            var walkResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _walk.GetAllWalk());
+            var walkResponse = JsonConvert.DeserializeObject<ResponseModelDto>(await _walk.GetAllWalk(filterBy, filterQuery, orderBy, isAsc));
             if (walkResponse is null)
             {
                 return BadRequest("No WalkData found, Some Error Occured !!");

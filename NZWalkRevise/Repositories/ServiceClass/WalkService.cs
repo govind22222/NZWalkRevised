@@ -1,4 +1,6 @@
-﻿using AutoMapper;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Linq;
+using AutoMapper;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
@@ -20,10 +22,37 @@ namespace NZWalkRevise.Repositories.ServiceClass
             _autoMapper = autoMapper;
         }
 
-        public async Task<string> GetAllWalk()
+        public async Task<string> GetAllWalk(string? filteBy, string? filterQuery, string? orderBy, bool isAsc = true)
         {
-            var walkData = await _db.Walks.AsNoTracking().Include(w => w.Difficulty).Include(w => w.Region).ToListAsync();
-            if (walkData is not null && walkData.Count() != 0)
+            //var walkData = await _db.Walks.AsNoTracking().Include(w => w.Difficulty).Include(w => w.Region).ToListAsync();
+            var walkData = _db.Walks.Include(w => w.Difficulty).Include(w => w.Region).AsQueryable();
+
+            if (!string.IsNullOrEmpty(filteBy) && !string.IsNullOrEmpty(filterQuery))
+            {
+                switch (filteBy.ToLower())
+                {
+                    case "name":
+                        walkData = walkData.Where(w => EF.Functions.Like(w.Name, $"%{filterQuery}%"));
+                        walkData = isAsc ? walkData.OrderBy(w => w.Name) : walkData.OrderByDescending(w => w.Name);
+                        break;
+                    case "description":
+                        walkData = walkData.Where(w => EF.Functions.Like(w.Description, $"%{filterQuery}%"));
+                        walkData = isAsc ? walkData.OrderBy(w => w.Description) : walkData.OrderByDescending(w => w.Description);
+                        break;
+                    case "lengthinkm":
+                        walkData = walkData.Where(w => EF.Functions.Like(w.LengthInKm.ToString(), $"%{filterQuery}%"));
+                        walkData = isAsc ? walkData.OrderBy(w => w.LengthInKm) : walkData.OrderByDescending(w => w.LengthInKm);
+                        break;
+                    default:
+                        walkData = walkData.Where(w => EF.Functions.Like(w.Name.ToString(), $"%{filterQuery}%"));
+                        walkData = isAsc ? walkData.OrderBy(w => w.Name) : walkData.OrderByDescending(w => w.Name);
+                        break;
+                }
+            }
+            //var walkList1= await walkData.CountAsync();
+            var walkList = await walkData.ToListAsync();
+
+            if (walkList is not null && walkList.Count() != 0)
             {
                 responseModel.IsSuccess = true;
                 responseModel.SuccessMessage = "Walk list retrived Successfully !!";
