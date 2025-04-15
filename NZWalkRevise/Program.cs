@@ -17,9 +17,11 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-//Database service added by Raghvendra
-builder.Services.AddDbContext<NZWalkDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
+//-------Database service added by Raghvendra
+builder.Services.AddDbContext<NZWalkDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("NZWalksConnectionStr")));
+
+//-------Adding Authentication Db by Raghvendra
+builder.Services.AddDbContext<NzAuthDbContext>(options => options.UseSqlServer(builder.Configuration.GetConnectionString("NzAuthConnectString")));
 
 builder.Services.AddScoped<IRegion, RegionService>();
 builder.Services.AddScoped<IWalk, WalkService>();
